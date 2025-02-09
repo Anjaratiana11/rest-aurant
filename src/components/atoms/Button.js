@@ -44,8 +44,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 14,
-    borderRadius: 12,
-    backgroundColor: "#6C5CE7",
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor   : "hsl(0, 0.00%, 0.00%)",
+    backgroundColor: "hsl(54, 88.40%, 52.70%)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -60,7 +62,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#000",
     textTransform: "uppercase",
   },
   reflection1: {
@@ -113,7 +115,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
   },
-
   triangle: {
     position: "absolute",
     bottom: 10,

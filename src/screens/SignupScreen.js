@@ -1,74 +1,75 @@
 import React, { useState } from "react";
-import {
-  Button,
-  View,
-  Text,
-  StyleSheet,
-  Alert,
-  TouchableOpacity,
-} from "react-native";
-import { signup } from "../services/FirebaseService";
-import ButtonPrimary from "../components/atoms/Button";
+import { View, Text, StyleSheet, Alert } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import Input from "../components/atoms/Input";
-import Layout from "../components/common/Layout"; 
+import ButtonPrimary from "../components/atoms/Button";
+import { inscrireUtilisateur } from "../services/SymfonyService"; 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SignupScreen = ({ navigation }) => {
-  // Ajoute navigation ici
-  const [email, setEmail] = useState("");
+
+const SignupScreen = () => {
+  const [nom, setNom] = useState("");
+  const [nomUtilisateur, setNomUtilisateur] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [mail, setMail] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
 
-  const handleSignup = async () => {
+  const handleSignUp = async () => {
     setLoading(true);
-    setError("");
-
     try {
-      const result = await signup(email, password);
-      console.log("Inscription réussie:", result);
+      // Appel à la fonction d'inscription
+      const result = await inscrireUtilisateur(nom, nomUtilisateur, password, mail);
+      console.log("Inscription réussie :", result);
 
-      Alert.alert(
-        "Inscription réussie",
-        "Votre compte a été créé avec succès !"
-      );
-
-      // Redirection vers la page de connexion après inscription
-      navigation.navigate("LoginScreen");
+      if (result && result.id) {
+        // Sauvegarde de l'ID utilisateur dans AsyncStorage
+        await AsyncStorage.setItem("userId", result.id.toString());
+        console.log("ID utilisateur stocké :", result.id);
+        
+        // Redirection vers la page des plats avec l'ID utilisateur
+        navigation.navigate("PlatsScreen", { userId: result.id });
+      } else {
+        console.error("Erreur lors de l'inscription : ID utilisateur non trouvé !");
+        Alert.alert("Erreur", "Impossible de s'inscrire, veuillez réessayer.");
+      }
     } catch (err) {
-      setError(err.message);
+      console.error("Erreur lors de l'inscription :", err);
+      Alert.alert("Erreur", "Échec de l'inscription. Veuillez vérifier vos informations.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-     <Layout>
     <View style={styles.container}>
       <Input
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Nom"
+        value={nom}
+        onChangeText={setNom}
       />
       <Input
-        style={styles.input}
+        placeholder="Nom d'utilisateur"
+        value={nomUtilisateur}
+        onChangeText={setNomUtilisateur}
+      />
+      <Input
+        placeholder="Email"
+        value={mail}
+        onChangeText={setMail}
+        keyboardType="email-address"
+      />
+      <Input
         placeholder="Mot de passe"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
-      <ButtonPrimary onPress={handleSignup}>
-        {loading ? "Chargement..." : "S'inscrire"}
+
+      <ButtonPrimary onPress={handleSignUp} disabled={loading}>
+        <Text>S'inscrire</Text>
       </ButtonPrimary>
-
-      {/* Affichage du lien vers la connexion */}
-      <TouchableOpacity onPress={() => navigation.navigate("LoginScreen")}>
-        <Text style={styles.link}>Déjà un compte ? Connecte-toi</Text>
-      </TouchableOpacity>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
-    </Layout>
   );
 };
 
@@ -77,17 +78,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 16,
-  },
-
-  link: {
-    marginTop: 15,
-    color: "#3498db", // Bleu pour ressembler à un lien
-    textAlign: "center",
-    fontSize: 16,
-  },
-  error: {
-    color: "red",
-    marginTop: 10,
   },
 });
 

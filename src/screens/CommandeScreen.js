@@ -1,39 +1,64 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
-import {
-  getCommandeDetails,
-  getPlatDetails,
-  getCommandeActuelle,
-  validerCommande,
-  deleteDetailCommande,
-  getPrixPlat,
-  getSommeCommande,
-} from "../services/SymfonyService";
-import { FontAwesome } from "@expo/vector-icons";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import ButtonPrimary from "../components/atoms/Button";
+import React, { useState, useEffect } from "react"; 
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  ActivityIndicator, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Alert 
+} from "react-native"; 
+import { 
+  getCommandeDetails, 
+  getPlatDetails, 
+  getCommandeActuelle, 
+  validerCommande, 
+  deleteDetailCommande, 
+  getPrixPlat, 
+  getSommeCommande, 
+  preparerCommande 
+} from "../services/SymfonyService"; 
+import { FontAwesome } from "@expo/vector-icons"; 
+import { Ionicons } from "@expo/vector-icons"; 
+import { useNavigation } from "@react-navigation/native"; 
+import ButtonPrimary from "../components/atoms/Button"; 
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Si tu utilises AsyncStorage
 
 const CommandeScreen = ({ route }) => {
-  const userId = 1; // Identifiant utilisateur
+  const [userId, setUserId] = useState(null); // L'état pour l'ID de l'utilisateur
   const navigation = useNavigation();
-
+  
   const [idCommande, setIdCommande] = useState(null);
   const [plats, setPlats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
 
+  // Récupérer l'utilisateur en session
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        // Récupérer l'utilisateur à partir du stockage (ou autre mécanisme que tu utilises)
+        const storedUserId = await AsyncStorage.getItem("userId");
+        if (storedUserId) {
+          setUserId(parseInt(storedUserId)); // Mettre à jour avec l'ID utilisateur
+        } else {
+          // Gérer le cas où il n'y a pas d'utilisateur en session
+          setError("Utilisateur non connecté");
+        }
+      } catch (err) {
+        setError("Erreur lors de la récupération de l'utilisateur");
+        console.error(err);
+      }
+    };
+
+    fetchUserId();
+  }, []); // Cette logique ne dépend que du montage du composant
+
   // Récupération de l'ID de la commande
   useEffect(() => {
+    if (userId === null) return; // Ne pas continuer si l'ID utilisateur n'est pas encore disponible
+
     const fetchCommandeId = async () => {
       try {
         const id = await getCommandeActuelle(userId);
@@ -45,7 +70,7 @@ const CommandeScreen = ({ route }) => {
       }
     };
     fetchCommandeId();
-  }, [userId]);
+  }, [userId]); // Effect déclenché lorsque userId change
 
   // Récupérer les détails de la commande
   useEffect(() => {
@@ -94,9 +119,11 @@ const CommandeScreen = ({ route }) => {
     }
 
     try {
-      const response = await validerCommande(idCommande);
-      if (response.statut === 0) {
-        alert(response.message);
+      const response = await preparerCommande(idCommande);
+
+      if (response && response.message) {
+        alert(response.message); 
+        navigation.navigate("PayerScreen");
       } else {
         alert("Une erreur est survenue lors de la validation.");
       }
@@ -171,8 +198,7 @@ const CommandeScreen = ({ route }) => {
                 style={styles.addItemButton}
                 onPress={() => navigation.navigate("PlatsScreen")}
               >
-                <Text style={styles.addItemText}>+</Text>{" "}
-
+                <Text style={styles.addItemText}>+</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -184,7 +210,7 @@ const CommandeScreen = ({ route }) => {
         <Text style={styles.totalAmount}>{total} Ar</Text>
       </View>
 
-      <ButtonPrimary onPress={handleValiderCommande}>Payer</ButtonPrimary>
+      <ButtonPrimary onPress={handleValiderCommande}>Valider</ButtonPrimary>
     </View>
   );
 };

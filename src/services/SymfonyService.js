@@ -1,4 +1,5 @@
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_URL = "https://cuisine-qemt.onrender.com/api";
 
@@ -29,15 +30,13 @@ const getPlats = async () => {
   }
 };
 
-/**
- * Récupère les détails d'un plat par son ID.
- */
+
 const getPlatDetails = async (platId) => {
   try {
     const response = await axios.get(`${API_URL}/plat/${platId}`);
     const data = response.data;
 
-    // Vérifie si la réponse est un tableau et contient au moins un objet
+
     if (Array.isArray(data) && data.length > 0) {
       const plat = data[0]; // Accède au premier objet dans le tableau
 
@@ -117,9 +116,6 @@ const getCommandeActuelle = async (userId) => {
   }
 };
 
-/**
- * Envoie une nouvelle commande (ajout d'un plat à la commande).
- */
 const ajouterPlatCommande = async (idCommande, idPlat, quantite) => {
   try {
     const response = await axios.post(`${API_URL}/detailsCommande/multi`, {
@@ -141,9 +137,9 @@ const ajouterPlatCommande = async (idCommande, idPlat, quantite) => {
 const getCommandeDetails = async (idCommande) => {
   try {
     const response = await axios.get(
-      `${API_URL}/commande/${idCommande}/detailsCommande` // Correction ici
+      `${API_URL}/commande/${idCommande}/detailsCommande` 
     );
-    return response.data; // Retourne la liste des plats de la commande
+    return response.data;
   } catch (error) {
     console.error(
       "Erreur lors de la récupération des détails de la commande:",
@@ -237,27 +233,80 @@ export const getSommeCommande = async (idCommande) => {
   }
 };
 
-export const deconnecterUtilisateur = async () => {
+
+
+export const preparerCommande = async (idCommande) => {
   try {
-    // Suppression du token d'authentification (si stocké dans localStorage, sessionStorage ou un autre moyen local)
-    localStorage.removeItem("authToken");  // Exemple avec localStorage
+    const response = await axios.post(`${API_URL}/commande/${idCommande}/prepare`);
 
-    // Envoi d'une requête de déconnexion au serveur (si nécessaire)
-    const response = await axios.post(`${API_URL}/logout`);
-
-    if (response.status === 200) {
-      console.log("Déconnexion réussie");
-
-      window.location.href = "/LoginScreen"; 
+    if (response.data && response.data.message) {
+      console.log(response.data.message);
+      return response.data;
     } else {
-      throw new Error("Erreur lors de la déconnexion.");
+      throw new Error("Réponse inattendue de l'API lors de la préparation de la commande");
     }
   } catch (error) {
-    console.error("Erreur lors de la déconnexion:", error);
-    throw new Error("Impossible de se déconnecter.");
+    console.error("Erreur lors de la préparation de la commande:", error);
+    throw new Error("Impossible de préparer la commande");
   }
 };
 
+export const getStatusColor = (statut) => { 
+  switch (statut) {
+    case -1:
+      return "gray";  // Gris pour panier
+    case 0:
+      return "orange";  // Orange pour en préparation
+    case 1:
+      return "green";  // Vert pour livré
+    default:
+      return "black";  // Noir pour statut inconnu
+  }
+};
+
+export const inscrireUtilisateur = async (nom, nomUtilisateur, mdp, mail) => {
+  try {
+    const response = await axios.post(`${API_URL}/signIn`, {
+      nom,
+      nomUtilisateur,
+      mdp,
+      mail,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de l'inscription:", error);
+    throw new Error("Impossible de s'inscrire");
+  }
+};
+
+export const connexionUtilisateur = async (mail, mdp) => {
+  try {
+    const response = await axios.post(`${API_URL}/login`, {
+      mail, // Utiliser "mail" au lieu de "nomUtilisateur"
+      mdp,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la connexion :", error);
+    throw new Error("Impossible de se connecter");
+  }
+};
+
+
+export const deconnexionUtilisateur = async () => {
+  try {
+    // Supprimer l'ID utilisateur de AsyncStorage
+    await AsyncStorage.removeItem("userId");
+    console.log("Utilisateur déconnecté");
+
+    // Rediriger vers la page de connexion
+    navigation.navigate("LoginScreen");
+  } catch (error) {
+    console.error("Erreur lors de la déconnexion :", error);
+  }
+};
 export {
   getPlats,
   getPlatDetails,

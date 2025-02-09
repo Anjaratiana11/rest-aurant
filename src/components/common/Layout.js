@@ -1,15 +1,23 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ImageBackground } from "react-native";
 
 const Layout = ({ children }) => {
-  return <View style={styles.container}>{children}</View>;
+  return (
+    <ImageBackground
+      source={require('../../assets/images/sky.jpg')} // Remplacez par le chemin de votre image
+      style={styles.container}
+    >
+      {children}
+    </ImageBackground>
+  );
 };
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#FAE5D3", // 🌟 Fond clair pour un design épuré
+    justifyContent: 'center',  // Vous pouvez ajuster cela selon le contenu
   },
 });
 

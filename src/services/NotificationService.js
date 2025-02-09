@@ -1,61 +1,60 @@
-import { useEffect } from "react";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
-import { initializeApp } from "firebase/app";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 
-// Configuration Firebase
-const firebaseConfig = require("../../config/google-services.json"); // Assure-toi que ce fichier existe et contient tes clés Firebase
+// Configurer la gestion des notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
-// Initialisation de Firebase
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-
-// Fonction pour obtenir le token FCM
-export const getPushToken = async () => {
-  try {
-    const token = await getToken(messaging, {
-      vapidKey:
-        "BITXKAHEd8glrswJFi7G4DyE5HSVLIkHSVSpCN_qcecl32AsnQ_-GTqUR8BtmQoGPkFzj1HsLhvRlKwbcAlw06M", // Remplace par ta clé VAPID si nécessaire
-    });
-    console.log("FCM Token:", token);
-    return token;
-  } catch (error) {
-    console.error("Erreur lors de la récupération du token FCM:", error);
+// Fonction pour s'enregistrer aux notifications push
+export async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) {
+    alert("Les notifications push ne fonctionnent pas sur un émulateur !");
+    return;
   }
-};
 
-// Fonction pour écouter les notifications en avant-plan
-export const onNotificationReceived = () => {
-  onMessage(messaging, (payload) => {
-    console.log("Notification reçue en avant-plan:", payload);
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: payload.notification?.title || "Nouvelle notification",
-        body: payload.notification?.body || "Vous avez un nouveau message",
-      },
-      trigger: null, // Affiche immédiatement
-    });
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== "granted") {
+    alert("Permission refusée pour les notifications !");
+    return;
+  }
+
+  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  return token;
+}
+
+// Fonction pour envoyer une notification test
+export async function sendPushNotification(expoPushToken) {
+  if (!expoPushToken) {
+    console.log("Aucun token disponible !");
+    return;
+  }
+
+  const message = {
+    to: expoPushToken,
+    sound: "default",
+    title: "Hello ! 🚀",
+    body: "Ceci est une notification test sur Expo Go.",
+  };
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-Encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(message),
   });
-};
-
-// Fonction principale pour configurer les notifications push
-export const configurePushNotifications = () => {
-  useEffect(() => {
-    // Demander la permission
-    (async () => {
-      if (Device.isDevice) {
-        const { status } = await Notifications.getPermissionsAsync();
-        if (status !== "granted") {
-          await Notifications.requestPermissionsAsync();
-        }
-      }
-    })();
-
-    // Obtenir le token
-    getPushToken();
-
-    // Écouter les notifications reçues en avant-plan
-    onNotificationReceived();
-  }, []);
-};
+}

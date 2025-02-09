@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; 
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import ButtonPrimary from "../components/atoms/Button";
 import { Ionicons } from "@expo/vector-icons";
 import Layout from "../components/common/Layout"; 
 import Input from "../components/atoms/Input";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PlatDetailsScreen = ({ route, navigation }) => {
   const { platId } = route.params;
@@ -31,6 +32,22 @@ const PlatDetailsScreen = ({ route, navigation }) => {
   const [error, setError] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [quantite, setQuantite] = useState("");
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem("userId"); // Assurez-vous que l'userId est stocké dans AsyncStorage
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération de l'ID utilisateur :", error);
+      }
+    };
+
+    fetchUserId();
+  }, []);
 
   useEffect(() => {
     const fetchPlatDetails = async () => {
@@ -76,7 +93,11 @@ const PlatDetailsScreen = ({ route, navigation }) => {
         return;
       }
 
-      const userId = 1; // Remplace avec l'ID réel de l'utilisateur connecté
+      if (!userId) {
+        alert("Erreur : ID utilisateur non trouvé.");
+        return;
+      }
+
       const idCommande = await getCommandeActuelle(userId);
 
       if (!idCommande) {
@@ -249,7 +270,5 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
 });
-
-
 
 export default PlatDetailsScreen;

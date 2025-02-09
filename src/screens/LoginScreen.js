@@ -1,40 +1,41 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
-import { login } from "../services/FirebaseService";
+import React, { useState } from "react";  
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import ButtonPrimary from "../components/atoms/Button";
 import Input from "../components/atoms/Input";
 import Layout from "../components/common/Layout";
-import Ionicons from "react-native-vector-icons/Ionicons"; // Import de l'icône œil
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { connexionUtilisateur } from "../services/SymfonyService"; // Assure-toi que ce chemin est correct
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState("");
+  const [nomUtilisateur, setNomUtilisateur] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // État pour afficher/masquer le mot de passe
+  const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
   const handleLogin = async () => {
     setLoading(true);
     setError("");
-    console.log("Tentative de connexion avec :", email);
+    console.log("Tentative de connexion avec :", nomUtilisateur);
 
     try {
-      const result = await login(email, password);
+      const result = await connexionUtilisateur(nomUtilisateur, password);
       console.log("Connexion réussie :", result);
 
-      const { idToken } = result;
-      if (idToken) {
-        console.log("idToken récupéré :", idToken);
-        Alert.alert("Connexion réussie", "Vous êtes connecté avec succès !");
-        navigation.navigate("PlatsScreen", { idToken });
+      if (result && result.id) {
+        await AsyncStorage.setItem("userId", result.id.toString());
+        console.log("ID utilisateur stocké :", result.id);
+        navigation.navigate("PlatsScreen", { userId: result.id });
       } else {
-        console.error("Erreur : idToken non trouvé !");
+        console.error("Erreur : ID utilisateur non trouvé !");
+        setError("Identifiants incorrects !");
       }
     } catch (err) {
       console.error("Erreur lors de la connexion :", err);
-      setError(err.message);
+      setError("Échec de connexion. Vérifiez vos identifiants.");
     } finally {
       setLoading(false);
     }
@@ -45,9 +46,9 @@ const LoginScreen = () => {
       <View style={styles.container}>
         <Input
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
+          placeholder="Nom d'utilisateur"
+          value={nomUtilisateur}
+          onChangeText={setNomUtilisateur}
         />
         <View style={styles.spacerInput} />
         <View style={styles.passwordContainer}>
@@ -67,16 +68,18 @@ const LoginScreen = () => {
           />
         </View>
 
-        {/* Espacement entre le champ de mot de passe et le bouton */}
         <View style={styles.spacer} />
 
-        {/* Utilisation de ButtonPrimary */}
         <ButtonPrimary onPress={handleLogin} disabled={loading}>
           <Text>Se connecter</Text>
         </ButtonPrimary>
 
-        {/* Espacement entre le bouton et le message d'erreur */}
         {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <View style={styles.spacerText} />
+        <TouchableOpacity onPress={() => navigation.navigate("SignupScreen")}>
+          <Text style={styles.signupText}>Pas de compte ? S'inscrire</Text>
+        </TouchableOpacity>
       </View>
     </Layout>
   );
@@ -89,29 +92,37 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   input: {
-    marginBottom: 16, // Espacement entre chaque input
+    marginBottom: 16,
     padding: 10,
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 5,
   },
   passwordContainer: {
-    position: "relative", // Nécessaire pour positionner l'œil à l'intérieur de l'input
+    position: "relative",
   },
   eyeIcon: {
     position: "absolute",
-    right: 10, // Place l'icône à droite de l'input
-    top: 15, // Ajuste pour être centré verticalement
+    right: 10,
+    top: 15,
   },
   spacer: {
-    marginBottom: 20, // Espacement avant le bouton
+    marginBottom: 20,
   },
   spacerInput: {
-    marginBottom: 10, // Espacement avant le bouton
+    marginBottom: 16,
+  },
+  spacerText: {
+    marginTop: 20,
   },
   error: {
     color: "red",
     marginTop: 10,
+  },
+  signupText: {
+    textAlign: "center",
+    marginTop: 10,
+    color: "hsl(337, 53%, 85%)",
   },
 });
 
