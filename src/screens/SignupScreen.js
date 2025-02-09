@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import { View, Text, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+import Layout from "../components/common/Layout";
 import Input from "../components/atoms/Input";
 import ButtonPrimary from "../components/atoms/Button";
-import { inscrireUtilisateur } from "../services/SymfonyService"; 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { inscrireUtilisateur } from "../services/SymfonyService";
 
 const SignupScreen = () => {
   const [nom, setNom] = useState("");
@@ -13,63 +15,70 @@ const SignupScreen = () => {
   const [password, setPassword] = useState("");
   const [mail, setMail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
 
   const handleSignUp = async () => {
     setLoading(true);
     try {
-      // Appel à la fonction d'inscription
       const result = await inscrireUtilisateur(nom, nomUtilisateur, password, mail);
       console.log("Inscription réussie :", result);
 
       if (result && result.id) {
-        // Sauvegarde de l'ID utilisateur dans AsyncStorage
         await AsyncStorage.setItem("userId", result.id.toString());
-        console.log("ID utilisateur stocké :", result.id);
-        
-        // Redirection vers la page des plats avec l'ID utilisateur
         navigation.navigate("PlatsScreen", { userId: result.id });
       } else {
-        console.error("Erreur lors de l'inscription : ID utilisateur non trouvé !");
         Alert.alert("Erreur", "Impossible de s'inscrire, veuillez réessayer.");
       }
     } catch (err) {
       console.error("Erreur lors de l'inscription :", err);
-      Alert.alert("Erreur", "Échec de l'inscription. Veuillez vérifier vos informations.");
+      Alert.alert("Erreur", "Échec de l'inscription. Vérifiez vos informations.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Input
-        placeholder="Nom"
-        value={nom}
-        onChangeText={setNom}
-      />
-      <Input
-        placeholder="Nom d'utilisateur"
-        value={nomUtilisateur}
-        onChangeText={setNomUtilisateur}
-      />
-      <Input
-        placeholder="Email"
-        value={mail}
-        onChangeText={setMail}
-        keyboardType="email-address"
-      />
-      <Input
-        placeholder="Mot de passe"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+    <Layout>
+      <View style={styles.container}>
+        <Input placeholder="Nom" value={nom} onChangeText={setNom} />
+        <View style={styles.spacerInput} />
+        
+        <Input placeholder="Nom d'utilisateur" value={nomUtilisateur} onChangeText={setNomUtilisateur} />
+        <View style={styles.spacerInput} />
+        
+        <Input placeholder="Email" value={mail} onChangeText={setMail} keyboardType="email-address" />
+        <View style={styles.spacerInput} />
 
-      <ButtonPrimary onPress={handleSignUp} disabled={loading}>
-        <Text>S'inscrire</Text>
-      </ButtonPrimary>
-    </View>
+        <View style={styles.passwordContainer}>
+          <Input
+            placeholder="Mot de passe"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            style={[styles.input, { paddingRight: 40 }]}
+          />
+          <Ionicons
+            name={showPassword ? "eye-off" : "eye"}
+            size={24}
+            color="black"
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+          />
+        </View>
+
+        <View style={styles.spacer} />
+
+        <ButtonPrimary onPress={handleSignUp} disabled={loading}>
+          <Text>S'inscrire</Text>
+        </ButtonPrimary>
+
+        <View style={styles.spacerText} />
+        <TouchableOpacity onPress={() => navigation.navigate("LoginScreen")}>
+          <Text style={styles.signupText}>Déjà un compte ? Se connecter</Text>
+        </TouchableOpacity>
+      </View>
+    </Layout>
   );
 };
 
@@ -78,6 +87,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 16,
+  },
+  passwordContainer: {
+    position: "relative",
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 10,
+    top: 15,
+  },
+  spacer: {
+    marginBottom: 20,
+  },
+  spacerInput: {
+    marginBottom: 16,
+  },
+  spacerText: {
+    marginTop: 20,
+  },
+  signupText: {
+    textAlign: "center",
+    marginTop: 10,
+    color: "hsl(337, 53%, 85%)",
   },
 });
 

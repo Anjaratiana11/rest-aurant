@@ -17,7 +17,7 @@ const Navbar = ({ items }) => {
           <Ionicons
             name={item.icon}
             size={28}
-            color="#fff"
+            color={"#333"} // Couleur du texte définie
             style={styles.icon}
           />
           <Text style={styles.label}>{item.label}</Text>
@@ -32,10 +32,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     paddingVertical: 12,
-    backgroundColor: "#8B4513", // 🍫 Marron chocolaté
-    borderTopWidth: 5,
-    borderTopColor: "#d35400", // 🍊 Style cartoon
-    shadowColor: "#5a2d0c",
+    backgroundColor: "hsl(337, 53%, 85%)", // Couleur de fond primaire
+    borderTopWidth: 3,
+    borderTopColor: "#cc2e63", // Couleur secondaire
+    shadowColor: "rgba(52, 152, 219, 0.4)",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.6,
     shadowRadius: 4,
@@ -44,22 +44,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20, // Coins arrondis pour les boutons
-    // backgroundColor: "#ff6347", // Fond retiré
-    shadowColor: "#5a2d0c",
+    borderRadius: 20,
+    backgroundColor: "hsla(0, 0%, 100%, 0.449)", // Effet de reflet
+    shadowColor: "rgba(52, 152, 219, 0.4)",
     shadowOffset: { width: 3, height: 3 },
     shadowOpacity: 0.6,
     shadowRadius: 4,
-    elevation: 6, // Effet d'élévation
+    elevation: 6,
   },
   icon: {
     marginBottom: 4,
   },
   label: {
-    fontSize: 12, // Taille du texte réduite pour un look cohérent
+    fontSize: 12,
     fontWeight: "bold",
-    color: "#fff",
-    textShadowColor: "#000",
+    color: "#333", // Texte en noir
+    textShadowColor: "rgba(52, 152, 219, 0.2)",
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 3,
   },

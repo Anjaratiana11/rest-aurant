@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import { 
   View, 
   Text, 
@@ -6,26 +6,27 @@ import {
   ActivityIndicator, 
   StyleSheet, 
   TouchableOpacity, 
-  Alert 
-} from "react-native"; 
+  Alert, 
+  ImageBackground 
+} from "react-native";
 import { 
   getCommandeDetails, 
   getPlatDetails, 
-  getCommandeActuelle, 
-  validerCommande, 
+  getCommandeActuelle,  
   deleteDetailCommande, 
   getPrixPlat, 
   getSommeCommande, 
   preparerCommande 
-} from "../services/SymfonyService"; 
-import { FontAwesome } from "@expo/vector-icons"; 
-import { Ionicons } from "@expo/vector-icons"; 
-import { useNavigation } from "@react-navigation/native"; 
-import ButtonPrimary from "../components/atoms/Button"; 
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Si tu utilises AsyncStorage
+} from "../services/SymfonyService";
+import { FontAwesome } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import ButtonPrimary from "../components/atoms/Button";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Navbar from "../components/molecules/Navbar";
+import Layout from "../components/common/Layout";
 
 const CommandeScreen = ({ route }) => {
-  const [userId, setUserId] = useState(null); // L'état pour l'ID de l'utilisateur
+  const [userId, setUserId] = useState(null);
   const navigation = useNavigation();
   
   const [idCommande, setIdCommande] = useState(null);
@@ -34,16 +35,13 @@ const CommandeScreen = ({ route }) => {
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
 
-  // Récupérer l'utilisateur en session
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        // Récupérer l'utilisateur à partir du stockage (ou autre mécanisme que tu utilises)
         const storedUserId = await AsyncStorage.getItem("userId");
         if (storedUserId) {
-          setUserId(parseInt(storedUserId)); // Mettre à jour avec l'ID utilisateur
+          setUserId(parseInt(storedUserId));
         } else {
-          // Gérer le cas où il n'y a pas d'utilisateur en session
           setError("Utilisateur non connecté");
         }
       } catch (err) {
@@ -53,11 +51,10 @@ const CommandeScreen = ({ route }) => {
     };
 
     fetchUserId();
-  }, []); // Cette logique ne dépend que du montage du composant
+  }, []);
 
-  // Récupération de l'ID de la commande
   useEffect(() => {
-    if (userId === null) return; // Ne pas continuer si l'ID utilisateur n'est pas encore disponible
+    if (userId === null) return;
 
     const fetchCommandeId = async () => {
       try {
@@ -70,9 +67,8 @@ const CommandeScreen = ({ route }) => {
       }
     };
     fetchCommandeId();
-  }, [userId]); // Effect déclenché lorsque userId change
+  }, [userId]);
 
-  // Récupérer les détails de la commande
   useEffect(() => {
     if (!idCommande) return;
 
@@ -86,7 +82,6 @@ const CommandeScreen = ({ route }) => {
           throw new Error("Aucun plat dans cette commande");
         }
 
-        // Détails de chaque plat
         const platsDetails = await Promise.all(
           detailsCommande.map(async (item) => {
             const plat = await getPlatDetails(item.idPlat);
@@ -97,7 +92,6 @@ const CommandeScreen = ({ route }) => {
 
         setPlats(platsDetails);
 
-        // Calcul du total de la commande
         const totalPrice = await getSommeCommande(idCommande);
         setTotal(totalPrice);
       } catch (err) {
@@ -111,7 +105,6 @@ const CommandeScreen = ({ route }) => {
     fetchCommandeDetails();
   }, [idCommande]);
 
-  // Valider la commande
   const handleValiderCommande = async () => {
     if (!idCommande) {
       alert("Aucune commande à valider.");
@@ -120,7 +113,6 @@ const CommandeScreen = ({ route }) => {
 
     try {
       const response = await preparerCommande(idCommande);
-
       if (response && response.message) {
         alert(response.message); 
         navigation.navigate("PayerScreen");
@@ -133,99 +125,101 @@ const CommandeScreen = ({ route }) => {
     }
   };
 
-  // Supprimer un plat de la commande
   const handleDeleteDetail = async (idDetail) => {
     Alert.alert(
       "Supprimer ce plat",
       "Êtes-vous sûr de vouloir supprimer ce plat de votre commande ?",
       [
-        {
-          text: "Annuler",
-          style: "cancel",
-        },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            try {
-              await deleteDetailCommande(idDetail);
-              setPlats((prevPlats) =>
-                prevPlats.filter((item) => item.id !== idDetail)
-              );
-              const newTotal = plats.reduce(
-                (sum, plat) => (plat.id !== idDetail ? sum + plat.prix : sum),
-                0
-              );
-              setTotal(newTotal);
-            } catch (error) {
-              alert("Erreur lors de la suppression.");
-              console.error(error);
-            }
-          },
-        },
+        { text: "Annuler", style: "cancel" },
+        { text: "Supprimer", onPress: async () => {
+          try {
+            await deleteDetailCommande(idDetail);
+            setPlats((prevPlats) => prevPlats.filter((item) => item.id !== idDetail));
+            const newTotal = plats.reduce(
+              (sum, plat) => (plat.id !== idDetail ? sum + plat.prix : sum),
+              0
+            );
+            setTotal(newTotal);
+          } catch (error) {
+            alert("Erreur lors de la suppression.");
+            console.error(error);
+          }
+        } }
       ]
     );
   };
 
-  // Affichage pendant le chargement
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
-
-  // Affichage en cas d'erreur
   if (error) {
     return <Text style={styles.error}>{error}</Text>;
   }
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Commande #{idCommande}</Text>
+  const navItems = [
+    { href: "PlatsScreen", icon: "restaurant", label: "Plats" },
+    { href: "CommandeScreen", icon: "receipt", label: "Commande" },
+    { href: "PayerScreen", icon: "cash", label: "Payer" },
+    { href: "LoginScreen", icon: "log-out", label: "Déconnexion", onPress: async () => {
+      await AsyncStorage.removeItem("userId");
+      navigation.navigate("LoginScreen");
+    }}
+  ];
 
-      <FlatList
-        data={[...plats, { id: "add", nom: "+", prix: "" }]} // Ajouter un élément "+" à la fin de la liste
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            {item.id !== "add" ? ( // Vérifie si l'élément n'est pas celui du "+"
-              <>
+  return (
+    <Layout>
+      <ImageBackground source={require("../assets/images/fond.png")} style={styles.backgroundImage}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Vos Commandes</Text>
+          <FlatList
+            data={plats}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.item}>
                 <Text style={styles.itemName}>{item.nom}</Text>
                 <Text style={styles.itemPrice}>{item.prix} Ar</Text>
                 <TouchableOpacity onPress={() => handleDeleteDetail(item.id)}>
                   <FontAwesome name="trash" size={20} color="red" />
                 </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity
-                style={styles.addItemButton}
-                onPress={() => navigation.navigate("PlatsScreen")}
-              >
-                <Text style={styles.addItemText}>+</Text>
-              </TouchableOpacity>
+              </View>
             )}
+          />
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>Total :</Text>
+            <Text style={styles.totalAmount}>{total} Ar</Text>
           </View>
-        )}
-      />
-
-      <View style={styles.totalContainer}>
-        <Text style={styles.totalText}>Total :</Text>
-        <Text style={styles.totalAmount}>{total} Ar</Text>
-      </View>
-
-      <ButtonPrimary onPress={handleValiderCommande}>Valider</ButtonPrimary>
-    </View>
+          <ButtonPrimary onPress={handleValiderCommande}>Valider</ButtonPrimary>
+        </View>
+      </ImageBackground>
+      <TouchableOpacity 
+  style={styles.floatingButton} 
+  onPress={() => navigation.navigate("PlatsScreen")}
+>
+  <FontAwesome name="plus-circle" size={50} color="#cc2e63" />
+</TouchableOpacity>
+      <Navbar items={navItems} />
+    </Layout>
   );
 };
 
+
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover",
+  },
+  
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#fff",
+    
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
+    color: "hsl(337, 53%, 85%)",
   },
   item: {
     flexDirection: "row",
@@ -233,14 +227,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+    borderBottomColor: "#cc2e63",
   },
   itemName: {
     fontSize: 18,
+    color: "#cc2e63",
   },
   itemPrice: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "#cc2e63",
   },
   totalContainer: {
     flexDirection: "row",
@@ -248,20 +244,21 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#ccc",
+    borderTopColor: "#cc2e63",
   },
   totalText: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "#cc2e63",
   },
   totalAmount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "green",
+    color: "hsl(69, 73.90%, 56.50%)",
   },
   floatingButton: {
     position: "absolute",
-    bottom: 80, // Positionner le bouton au-dessous de la liste de plats
+    bottom: 80,
     right: 20,
   },
   error: {
@@ -270,18 +267,30 @@ const styles = StyleSheet.create({
   },
   addItemButton: {
     flexDirection: "row",
-    justifyContent: "center", // Centrer le contenu horizontalement
-    alignItems: "center", // Centrer le contenu verticalement
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 10,
     marginTop: 10,
-    marginBottom: 10, // Un peu d'espace avant et après le bouton "+"
-    borderBottomWidth: 1, // Si tu veux une ligne sous le bouton "+"
-    borderBottomColor: "#ccc", // Bordure comme les autres plats
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#cc2e63",
   },
   addItemText: {
-    fontSize: 24, // Taille plus grande pour le "+"
-    fontWeight: "bold", // Gras pour le "+"
-    color: "blue", // Couleur personnalisée pour le "+"
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#cc2e63",
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 80, // Ajuste pour qu'il ne soit pas caché par la navbar
+    right: 20,
+    backgroundColor: "white",
+    borderRadius: 50,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });
 

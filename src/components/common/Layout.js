@@ -16,9 +16,12 @@ const Layout = ({ children }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    justifyContent: 'center',  // Vous pouvez ajuster cela selon le contenu
+    paddingHorizontal: 0, // Supprime les marges latérales
+    paddingVertical: 0, // Supprime les marges verticales
+    justifyContent: "flex-start", // Garde le contenu en haut sans déformer la navbar
+    alignItems: "stretch", // Étire le contenu sur toute la largeur
   },
 });
+
 
 export default Layout;

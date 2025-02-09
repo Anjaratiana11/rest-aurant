@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ActivityIndicator,
   StyleSheet,
   Modal,
-  TextInput,
   FlatList,
   TouchableOpacity,
 } from "react-native";
@@ -18,9 +17,10 @@ import {
 } from "../services/SymfonyService";
 import ButtonPrimary from "../components/atoms/Button";
 import { Ionicons } from "@expo/vector-icons";
-import Layout from "../components/common/Layout"; 
+import Layout from "../components/common/Layout";
 import Input from "../components/atoms/Input";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Navbar from "../components/molecules/Navbar";
 
 const PlatDetailsScreen = ({ route, navigation }) => {
   const { platId } = route.params;
@@ -37,7 +37,7 @@ const PlatDetailsScreen = ({ route, navigation }) => {
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const storedUserId = await AsyncStorage.getItem("userId"); // Assurez-vous que l'userId est stocké dans AsyncStorage
+        const storedUserId = await AsyncStorage.getItem("userId");
         if (storedUserId) {
           setUserId(storedUserId);
         }
@@ -109,7 +109,7 @@ const PlatDetailsScreen = ({ route, navigation }) => {
 
       alert(`Le plat ${plat.nom} a été ajouté à votre commande !`);
 
-      setQuantite(""); // Remettre la quantité à zéro
+      setQuantite("");
       setIsModalVisible(false);
 
       navigation.navigate("CommandeScreen", { idCommande });
@@ -119,8 +119,15 @@ const PlatDetailsScreen = ({ route, navigation }) => {
     }
   };
 
+  const navItems = [
+    { href: "PlatsScreen", icon: "restaurant", label: "Plats" },
+    { href: "CommandeScreen", icon: "receipt", label: "Commande" },
+    { href: "PayerScreen", icon: "cash", label: "Payer" },
+    { href: "LoginScreen", icon: "log-out", label: "Déconnexion" },
+  ];
+
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
+    return <ActivityIndicator size="large" color="#cc2e63" />;
   }
 
   if (error) {
@@ -129,18 +136,18 @@ const PlatDetailsScreen = ({ route, navigation }) => {
 
   return (
     <Layout>
-      <View>
+      <View style={styles.container}>
         {plat && (
-          <View>
+          <View style={styles.content}>
             <Text style={styles.title}>{plat.nom}</Text>
-            <Text>Temps de préparation: {plat.tempsDePreparation} sec</Text>
+            <Text style={styles.text}>⏳ Temps de préparation: {plat.tempsDePreparation} sec</Text>
 
-            <Text style={styles.subtitle}>Ingrédients :</Text>
+            <Text style={styles.subtitle}>🥦 Ingrédients :</Text>
             <FlatList
               data={ingredients}
               keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => <Text>{item.nom}</Text>}
-              ListEmptyComponent={<Text>Aucun ingrédient trouvé</Text>}
+              renderItem={({ item }) => <Text style={styles.ingredientItem}>{item.nom}</Text>}
+              ListEmptyComponent={<Text style={styles.text}>Aucun ingrédient trouvé</Text>}
             />
 
             <ButtonPrimary onPress={() => setIsModalVisible(true)}>
@@ -169,13 +176,14 @@ const PlatDetailsScreen = ({ route, navigation }) => {
                 keyboardType="numeric"
                 value={quantite}
                 onChangeText={setQuantite}
-                style={styles.input} // Appliquer les styles personnalisés si nécessaire
+                style={styles.input}
               />
               <ButtonPrimary onPress={handleCommander}>Commander</ButtonPrimary>
             </View>
           </View>
         </Modal>
       </View>
+      <Navbar items={navItems} />
     </Layout>
   );
 };
@@ -183,32 +191,50 @@ const PlatDetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 15, // Ajoute un petit espace sur les côtés
+    paddingBottom: 70, // Laisse de la place pour la Navbar
+  },
+  content: {
+    backgroundColor: "hsl(337, 53%, 85%)",
     padding: 20,
-    backgroundColor: "#f5f5f5", // Fond clair pour un look plus frais
+    borderRadius: 15,
+    shadowColor: "#5a2d0c",
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    marginVertical: 10,
   },
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    color: "#ff6347", // Couleur tomate pour un côté gourmand
+    color: "#cc2e63",
     textAlign: "center",
   },
   subtitle: {
     fontSize: 20,
     fontWeight: "600",
     marginTop: 15,
-    color: "#3c8d1f", // Vert pour rappeler les légumes frais
+    color: "#3c8d1f",
   },
-  error: {
-    color: "red",
-    textAlign: "center",
+  text: {
     fontSize: 16,
-    marginTop: 10,
+    color: "#333",
+    marginTop: 5,
+  },
+  ingredientItem: {
+    backgroundColor: "#e0f7fa",
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 8,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
   },
   modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.7)", // Fond plus sombre pour le modal
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalContent: {
     backgroundColor: "#fff",
@@ -216,58 +242,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     width: "80%",
     alignItems: "center",
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  modalTitle: {
-    fontSize: 22,
-    color: "#ff6347", // Couleur tomate pour rester dans l'ambiance
-    marginBottom: 15,
-  },
-  input: {
-    width: "100%",
-    padding: 12,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 20,
-    fontSize: 16,
-    textAlign: "center",
   },
   closeButton: {
     position: "absolute",
     top: 10,
     right: 10,
-    padding: 12,
-    zIndex: 10,
-  },
-  button: {
-    backgroundColor: "#ff6347", // Bouton de commande coloré
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  ingredientItem: {
-    backgroundColor: "#e0f7fa", // Fond bleu clair pour les ingrédients
-    padding: 10,
-    marginBottom: 8,
-    borderRadius: 8,
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-  },
-  flatListContainer: {
-    marginTop: 15,
   },
 });
 

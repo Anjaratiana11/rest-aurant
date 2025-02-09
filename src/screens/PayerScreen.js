@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
   ActivityIndicator,
   StyleSheet,
+  TouchableOpacity,
+  Alert,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";  // Import AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getCommandeDetails,
   getPlatDetails,
@@ -17,22 +19,26 @@ import {
   getStatusColor,
 } from "../services/SymfonyService";
 import ButtonPrimary from "../components/atoms/Button";
+import { ImageBackground } from "react-native";
+import Navbar from "../components/molecules/Navbar";
+import Layout from "../components/common/Layout";
+import { useNavigation } from "@react-navigation/native";
 
 const PayerScreen = () => {
-  const [userId, setUserId] = useState(null);  // Modifier pour stocker userId
+  const [userId, setUserId] = useState(null);
   const [idCommande, setIdCommande] = useState(null);
   const [plats, setPlats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
+  const navigation = useNavigation();
 
-  // Récupération de l'ID utilisateur depuis AsyncStorage
   useEffect(() => {
     const fetchUserId = async () => {
       try {
-        const storedUserId = await AsyncStorage.getItem("userId");  // Récupère l'ID utilisateur
+        const storedUserId = await AsyncStorage.getItem("userId");
         if (storedUserId) {
-          setUserId(parseInt(storedUserId));  // Met à jour l'état avec l'ID utilisateur récupéré
+          setUserId(parseInt(storedUserId));
         } else {
           console.log("Aucun userId trouvé dans le stockage");
         }
@@ -43,10 +49,8 @@ const PayerScreen = () => {
     fetchUserId();
   }, []);
 
-  // Récupération de l'ID de la commande
   useEffect(() => {
-    if (userId === null) return;  // Ne pas faire de requêtes si userId n'est pas encore récupéré
-
+    if (userId === null) return;
     const fetchCommandeId = async () => {
       try {
         const id = await getCommandeActuelle(userId);
@@ -60,10 +64,8 @@ const PayerScreen = () => {
     fetchCommandeId();
   }, [userId]);
 
-  // Récupérer les détails de la commande
   useEffect(() => {
     if (!idCommande) return;
-
     const fetchCommandeDetails = async () => {
       try {
         setLoading(true);
@@ -74,7 +76,6 @@ const PayerScreen = () => {
           throw new Error("Aucun plat dans cette commande");
         }
 
-        // Détails de chaque plat
         const platsDetails = await Promise.all(
           detailsCommande.map(async (item) => {
             const plat = await getPlatDetails(item.idPlat);
@@ -84,8 +85,6 @@ const PayerScreen = () => {
         );
 
         setPlats(platsDetails);
-
-        // Calcul du total de la commande
         const totalPrice = await getSommeCommande(idCommande);
         setTotal(totalPrice);
       } catch (err) {
@@ -95,86 +94,97 @@ const PayerScreen = () => {
         setLoading(false);
       }
     };
-
     fetchCommandeDetails();
   }, [idCommande]);
 
-  // Valider la commande
   const handleValiderCommande = async () => {
     if (!idCommande) {
-      alert("Aucune commande à valider.");
+      Alert.alert("Erreur", "Aucune commande à valider.");
       return;
     }
-
+  
     try {
       const response = await validerCommande(idCommande);
       if (response.statut === 0) {
-        alert(response.message);
+        Alert.alert("Succès", response.message, [
+          { text: "OK", onPress: () => navigation.navigate("PlatsScreen") }
+        ]);
       } else {
-        alert("Une erreur est survenue lors de la validation.");
+        Alert.alert("Erreur", "Une erreur est survenue lors de la validation.");
       }
     } catch (error) {
-      alert(error.message || "Erreur lors de la validation.");
+      Alert.alert("Erreur", error.message || "Erreur lors de la validation.");
       console.error(error);
     }
   };
 
-  // Affichage pendant le chargement
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
-
-  // Affichage en cas d'erreur
   if (error) {
     return <Text style={styles.error}>{error}</Text>;
   }
 
+  const navItems = [
+    { href: "PlatsScreen", icon: "restaurant", label: "Plats" },
+    { href: "CommandeScreen", icon: "receipt", label: "Commande" },
+    { href: "PayerScreen", icon: "cash", label: "Payer" },
+    { href: "LoginScreen", icon: "log-out", label: "Déconnexion", onPress: async () => {
+        await AsyncStorage.removeItem("userId");
+        navigation.navigate("LoginScreen");
+      }
+    },
+  ];
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Commande #{idCommande}</Text>
-
-      <FlatList
-        data={plats}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.item}>
-            <Text style={styles.itemName}>{item.nom}</Text>
-            <Text style={styles.itemPrice}>{item.prix} Ar</Text>
-            <Text style={[styles.itemStatus, { color: getStatusColor(item.statut) }]}>
-              {item.statut === -1
-                ? "Panier"
-                : item.statut === 0
-                ? "En préparation"
-                : item.statut === 2
-                ? "Livré"
-                : "Statut inconnu"}
-            </Text>
-
+    <Layout>
+      <ImageBackground source={require("../assets/images/fond.png")} style={styles.backgroundImage}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Vos Commandes</Text>
+          <FlatList
+            data={plats}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.item}>
+                <Text style={styles.itemName}>{item.nom}</Text>
+                <Text style={[styles.status, { color: getStatusColor(item.statut) }]}>
+                {item.statut === -1
+                  ? "Panier"
+                  : item.statut === 0
+                  ? "En préparation"
+                  : item.statut === 2
+                  ? "Notif"
+                  : item.statut === 3
+                  ? "Livré"
+                  : "--"}
+              </Text>
+              </View>
+            )}
+          />
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>Total :</Text>
+            <Text style={styles.totalAmount}>{total} Ar</Text>
           </View>
-        )}
-      />
-
-      <View style={styles.totalContainer}>
-        <Text style={styles.totalText}>Total :</Text>
-        <Text style={styles.totalAmount}>{total} Ar</Text>
-      </View>
-
-      <ButtonPrimary onPress={handleValiderCommande}>Payer</ButtonPrimary>
-    </View>
+          <ButtonPrimary onPress={handleValiderCommande}>Payer</ButtonPrimary>
+          
+        </View>
+      </ImageBackground>
+      <Navbar items={navItems} />
+    </Layout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
+    paddingHorizontal: 20, 
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
+    color: "hsl(337, 53%, 85%)",
   },
   item: {
     flexDirection: "row",
@@ -186,10 +196,12 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 18,
+    color: "hsl(337, 53%, 85%)",
   },
   itemPrice: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "hsl(337, 53%, 85%)",
   },
   totalContainer: {
     flexDirection: "row",
@@ -202,15 +214,20 @@ const styles = StyleSheet.create({
   totalText: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "hsl(337, 53%, 85%)",
   },
   totalAmount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "green",
+    color: "hsl(69, 73.90%, 56.50%)",
   },
   error: {
     color: "red",
     textAlign: "center",
+  },
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover",
   },
 });
 

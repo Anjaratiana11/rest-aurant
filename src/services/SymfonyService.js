@@ -137,17 +137,27 @@ const ajouterPlatCommande = async (idCommande, idPlat, quantite) => {
 const getCommandeDetails = async (idCommande) => {
   try {
     const response = await axios.get(
-      `${API_URL}/commande/${idCommande}/detailsCommande` 
+      `${API_URL}/commande/${idCommande}/detailsCommande`
     );
+
+    if (!response.data || response.data.length === 0) {
+      console.warn(`📭 Aucun plat dans la commande ${idCommande}.`);
+      return null; // Retourne null si la commande est vide
+    }
+
     return response.data;
   } catch (error) {
-    console.error(
-      "Erreur lors de la récupération des détails de la commande:",
-      error
-    );
+    if (error.response?.status === 404) {
+      console.warn(`⚠️ Aucun détail de commande trouvé pour la commande ${idCommande}.`);
+      return null; // Retourne null si la commande n'existe pas encore
+    }
+
+    console.error("❌ Erreur lors de la récupération des détails de la commande:", error);
     throw new Error("Impossible de récupérer la commande");
   }
 };
+
+
 
 export const validerCommande = async (idCommande) => {
   try {
@@ -237,7 +247,23 @@ export const getSommeCommande = async (idCommande) => {
 
 export const preparerCommande = async (idCommande) => {
   try {
-    const response = await axios.post(`${API_URL}/commande/${idCommande}/prepare`);
+    const response = await axios.put(`${API_URL}/detailsCommande/${idCommande}/prepare`);
+
+    if (response.data && response.data.message) {
+      console.log(response.data.message);
+      return response.data;
+    } else {
+      throw new Error("Réponse inattendue de l'API lors de la préparation de la commande");
+    }
+  } catch (error) {
+    console.error("Erreur lors de la préparation de la commande:", error);
+    throw new Error("Impossible de préparer la commande");
+  }
+};
+
+export const Notif = async (idDetail) => {
+  try {
+    const response = await axios.put(`${API_URL}/detailsCommande/${idDetail}/recu`);
 
     if (response.data && response.data.message) {
       console.log(response.data.message);
@@ -257,7 +283,7 @@ export const getStatusColor = (statut) => {
       return "gray";  // Gris pour panier
     case 0:
       return "orange";  // Orange pour en préparation
-    case 1:
+    case 3:
       return "green";  // Vert pour livré
     default:
       return "black";  // Noir pour statut inconnu
@@ -283,7 +309,7 @@ export const inscrireUtilisateur = async (nom, nomUtilisateur, mdp, mail) => {
 export const connexionUtilisateur = async (mail, mdp) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
-      mail, // Utiliser "mail" au lieu de "nomUtilisateur"
+      mail, 
       mdp,
     });
 
@@ -307,6 +333,7 @@ export const deconnexionUtilisateur = async () => {
     console.error("Erreur lors de la déconnexion :", error);
   }
 };
+
 export {
   getPlats,
   getPlatDetails,
