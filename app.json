@@ -20,7 +20,8 @@
         "foregroundImage": "./src/assets/images/logo3.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anjara11.Restaurant"
+      "package": "com.anjara11.Restaurant",
+      "permissions": ["NOTIFICATIONS"]
     },
     "web": {
       "favicon": "./assets/favicon.png"

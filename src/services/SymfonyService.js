@@ -289,22 +289,28 @@ export const getStatusColor = (statut) => {
       return "black";  // Noir pour statut inconnu
   }
 };
+// Remplace par ton URL API
 
-export const inscrireUtilisateur = async (nom, nomUtilisateur, mdp, mail) => {
+export const inscrireUtilisateur = async (nom, nomUtilisateur, password, mail) => {
   try {
+    console.log("Données envoyées à l'API:", { nom, nomUtilisateur, mdp: password, mail });
+
     const response = await axios.post(`${API_URL}/signIn`, {
       nom,
       nomUtilisateur,
-      mdp,
+      mdp: password,  // Assure-toi que l'API attend bien "mdp"
       mail,
     });
 
+    console.log("Réponse API:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Erreur lors de l'inscription:", error);
+    console.error("Erreur lors de l'inscription:", error.response ? error.response.data : error);
     throw new Error("Impossible de s'inscrire");
   }
 };
+
+
 
 export const connexionUtilisateur = async (mail, mdp) => {
   try {

@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; 
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
+
 import Layout from "../components/common/Layout";
 import Input from "../components/atoms/Input";
 import ButtonPrimary from "../components/atoms/Button";
-import { inscrireUtilisateur } from "../services/SymfonyService";
+import { inscrireUtilisateur } from "../services/SymfonyService"; 
 
 const SignupScreen = () => {
   const [nom, setNom] = useState("");
@@ -19,11 +20,21 @@ const SignupScreen = () => {
   const navigation = useNavigation();
 
   const handleSignUp = async () => {
+    if (!nom || !nomUtilisateur || !password || !mail) {
+      Alert.alert("Erreur", "Tous les champs doivent être remplis.");
+      return;
+    }
+  
+    if (password.length < 6) {
+      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+  
     setLoading(true);
     try {
       const result = await inscrireUtilisateur(nom, nomUtilisateur, password, mail);
       console.log("Inscription réussie :", result);
-
+  
       if (result && result.id) {
         await AsyncStorage.setItem("userId", result.id.toString());
         navigation.navigate("PlatsScreen", { userId: result.id });
@@ -32,11 +43,12 @@ const SignupScreen = () => {
       }
     } catch (err) {
       console.error("Erreur lors de l'inscription :", err);
-      Alert.alert("Erreur", "Échec de l'inscription. Vérifiez vos informations.");
+      Alert.alert("Erreur", err.message);
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <Layout>
